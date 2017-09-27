@@ -1,0 +1,3 @@
+struct teste{
+  uint teste;
+};

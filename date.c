@@ -15,8 +15,6 @@ main(int argc, char *argv[])
     exit();
   }
 
-  // Imprima a data aqui
-  //printf(0, "date!!!\n");
   printf(0,"Date: %d-%d-%d\t%d:%d\n", r.day, r.month, r.year, r.hour, r.minute);
 
   exit();

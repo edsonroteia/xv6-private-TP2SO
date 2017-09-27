@@ -98,3 +98,15 @@ sys_date(void)
   cmostime((struct rtcdate*)ptr);
   return 0;
 }
+
+//return real address given a virtual one
+int sys_virt2real(void){
+
+  return 0;
+}
+
+//return number of pages used by process
+int sys_virt2real(void){
+
+  return 0;
+}

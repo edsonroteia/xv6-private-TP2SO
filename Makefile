@@ -169,10 +169,12 @@ UPROGS=\
 	_ln\
 	_ls\
 	_mkdir\
+	_num_pages\
 	_rm\
 	_sh\
 	_stressfs\
 	_usertests\
+	_virt2real\
 	_wc\
 	_zombie\
 
