@@ -106,7 +106,7 @@ int sys_virt2real(void){
 }
 
 //return number of pages used by process
-int sys_virt2real(void){
+int sys_num_pages(void){
 
   return 0;
 }
