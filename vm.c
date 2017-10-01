@@ -383,10 +383,18 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
+//testing code
+char *
+virt2realtest(pde_t *pgdir, char * va)
+{
+  //pgdir = (char*)0x0666;
+  char * ra;
+  ra = (char*)walkpgdir((pde_t *)pgdir, (const void *)va, 0);
+  return ra;
+}
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
 // Blank page.
-

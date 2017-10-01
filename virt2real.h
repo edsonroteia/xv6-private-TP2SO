@@ -1,3 +1,3 @@
 struct teste{
-  uint teste;
+  char * address;
 };

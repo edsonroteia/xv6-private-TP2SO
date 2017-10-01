@@ -100,9 +100,14 @@ sys_date(void)
 }
 
 //return real address given a virtual one
-int sys_virt2real(void){
-
-  return 0;
+int
+sys_virt2real(void)
+{
+  char *ptr;
+  argptr(0, &ptr, sizeof(char*));
+  ptr = virt2realtest(myproc()->pgdir ,(char *) ptr); //debugging
+  // VOU CHAMAR FUNCAO IMPLEMENTADA NO VM.C PARA FAZER ISSO
+  return (int)ptr;
 }
 
 //return number of pages used by process

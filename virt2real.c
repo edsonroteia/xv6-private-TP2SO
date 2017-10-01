@@ -10,6 +10,7 @@ int stderr = 2;
 int
 main(int argc, char *argv[])
 {
-  printf(1, "teste\n");
+  char *address = (char*)0x0010;
+  printf(1, "virt2real\nAddress:%p, Depois:%p\n", address, virt2real(address));
   exit();
 }
