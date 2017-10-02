@@ -385,12 +385,16 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 
 //testing code
 char *
-virt2realtest(pde_t *pgdir, char * va)
+virt2real(pde_t *pgdir, char * va)
 {
   //pgdir = (char*)0x0666;
   char * ra;
   ra = (char*)walkpgdir((pde_t *)pgdir, (const void *)va, 0);
-  return ra;
+  unsigned mask_first20 = 0b11111111111111111111000000000000;
+  unsigned mask_last12 = 0b00000000000000000000111111111111;
+  unsigned PPN = ((unsigned)ra & mask_first20);
+  unsigned offset = ((unsigned)va & mask_last12);
+  return (char *)(PPN | offset);
 }
 //PAGEBREAK!
 // Blank page.

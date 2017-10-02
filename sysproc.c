@@ -105,13 +105,13 @@ sys_virt2real(void)
 {
   char *ptr;
   argptr(0, &ptr, sizeof(char*));
-  ptr = virt2realtest(myproc()->pgdir ,(char *) ptr); //debugging
-  // VOU CHAMAR FUNCAO IMPLEMENTADA NO VM.C PARA FAZER ISSO
+  ptr = virt2real(myproc()->pgdir ,(char *) ptr);
   return (int)ptr;
 }
 
 //return number of pages used by process
 int sys_num_pages(void){
-
-  return 0;
+  int num_pages;
+  num_pages = myproc()->sz/PGSIZE;
+  return num_pages;
 }

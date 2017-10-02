@@ -185,7 +185,7 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
-char*           virt2realtest(pde_t *pgdir, char* va);
+char*           virt2real(pde_t *pgdir, char* va);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
