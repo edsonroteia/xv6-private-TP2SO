@@ -88,6 +88,7 @@ extern int sys_dup(void);
 extern int sys_exec(void);
 extern int sys_exit(void);
 extern int sys_fork(void);
+extern int sys_forkcow(void);
 extern int sys_fstat(void);
 extern int sys_getpid(void);
 extern int sys_kill(void);
@@ -110,6 +111,7 @@ extern int sys_num_pages(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
+[SYS_forkcow] sys_forkcow,
 [SYS_exit]    sys_exit,
 [SYS_wait]    sys_wait,
 [SYS_pipe]    sys_pipe,

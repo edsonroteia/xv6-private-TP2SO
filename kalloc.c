@@ -20,6 +20,7 @@ struct run {
 struct {
   struct spinlock lock;
   int use_lock;
+  int refsCount;
   struct run *freelist;
 } kmem;
 
