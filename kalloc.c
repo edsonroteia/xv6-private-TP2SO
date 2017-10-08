@@ -20,7 +20,7 @@ struct run {
 struct {
   struct spinlock lock;
   int use_lock;
-  int refsCount;
+  int refsCount[PHYSTOP >> PGSHIFT];
   struct run *freelist;
 } kmem;
 
@@ -49,8 +49,10 @@ freerange(void *vstart, void *vend)
 {
   char *p;
   p = (char*)PGROUNDUP((uint)vstart);
-  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+  for(; p + PGSIZE <= (char*)vend; p += PGSIZE){
+    kmem.refsCount[V2P(p) >> PGSHIFT] = 0;
     kfree(p);
+  }
 }
 //PAGEBREAK: 21
 // Free the page of physical memory pointed at by v,
@@ -65,14 +67,20 @@ kfree(char *v)
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
-  memset(v, 1, PGSIZE);
-
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = (struct run*)v;
-  r->next = kmem.freelist;
-  kmem.freelist = r;
+
+  if(kmem.refsCount[V2P(v) >> PGSHIFT] > 0)         // Decrement the reference count of a page whenever someone frees it
+    --kmem.refsCount[V2P(v) >> PGSHIFT];
+
+  if(kmem.refsCount[V2P(v) >> PGSHIFT] == 0){       // Free the page only if there are no references to the page
+    // Fill with junk to catch dangling refs.
+    memset(v, 1, PGSIZE);
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
 }
@@ -88,9 +96,44 @@ kalloc(void)
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
-  if(r)
+  if(r){
     kmem.freelist = r->next;
+    kmem.refsCount[V2P((char*)r) >> PGSHIFT] = 1;     // reference count of a page is set to one when it is allocated
+
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
+}
+
+void decRef(uint pa)
+{
+  if(pa < (uint)V2P(end) || pa >= PHYSTOP)
+    panic("decRef");
+
+  acquire(&kmem.lock);
+  --kmem.refsCount[pa >> PGSHIFT];
+  release(&kmem.lock);
+}
+
+void incRef(uint pa)
+{
+  if(pa < (uint)V2P(end) || pa >= PHYSTOP)
+    panic("incRef");
+
+  acquire(&kmem.lock);
+  ++kmem.refsCount[pa >> PGSHIFT];
+  release(&kmem.lock);
+}
+uint getRef(uint pa)
+{
+  if(pa < (uint)V2P(end) || pa >= PHYSTOP)
+    panic("getRef");
+  uint count;
+
+  acquire(&kmem.lock);
+  count = kmem.refsCount[pa >> PGSHIFT];
+  release(&kmem.lock);
+
+  return count;
 }

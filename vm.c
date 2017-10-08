@@ -350,7 +350,6 @@ copyuvmcow(pde_t *pgdir, uint sz)
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
-  char *mem;
 
   if((d = setupkvm()) == 0)
     return 0;
@@ -359,18 +358,22 @@ copyuvmcow(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
+    *pte &= ~PTE_W;
+    *pte |= PTE_COW;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0)
       goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
-      goto bad;
+    incRef(pa);
   }
+  lcr3(V2P(pgdir));
   return d;
 
 bad:
   freevm(d);
+  // Even though we failed to copy, we should flush TLB, since
+  // some entries in the original process page table have been changed
+  lcr3(V2P(pgdir));
   return 0;
 }
 
@@ -415,18 +418,23 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
-//testing code
 char *
 virt2real(pde_t *pgdir, char * va)
 {
   //pgdir = (char*)0x0666;
-  char * ra;
-  ra = (char*)walkpgdir((pde_t *)pgdir, (const void *)va, 0);
-  unsigned mask_first20 = 0b11111111111111111111000000000000;
-  unsigned mask_last12 = 0b00000000000000000000111111111111;
-  unsigned PPN = ((unsigned)ra & mask_first20);
-  unsigned offset = ((unsigned)va & mask_last12);
-  return (char *)(PPN | offset);
+  char * pte;
+  pte = (char*)walkpgdir((pde_t *)pgdir, (const void *)va, 0);
+	if((*pte != 0) && ((*pte & PTE_P) != 0) && ((*pte & PTE_U) != 0))
+		return (char*) PTE_ADDR(*pte) + PTE_FLAGS(va);
+	else
+	  return 0;
+  /*char * mask_first20 = (char*)0b11111111111111111111000000000000;
+  cprintf("%d", mask_first20);
+  char * mask_last12  = (char*)0b00000000000000000000111111111111;
+  char * PPN = (char *)((unsigned) ra & (unsigned) mask_first20);
+  char * offset = (char *)((unsigned)va & (unsigned)mask_last12);
+  return (char*)((unsigned)PPN | (unsigned)offset);
+	*/
 }
 //PAGEBREAK!
 // Blank page.
@@ -434,3 +442,32 @@ virt2real(pde_t *pgdir, char * va)
 // Blank page.
 //PAGEBREAK!
 // Blank page.
+
+void pagefault(uint err_code)
+{
+    uint virtaddr = rcr2();
+    pte_t *pte;
+    struct proc *proc = myproc();
+    if(virtaddr >= KERNBASE || (pte = walkpgdir(proc->pgdir, (void*)virtaddr, 0)) == 0  ||
+        !(*pte & PTE_P) || !(*pte & PTE_U) || !(*pte & PTE_COW)){
+      proc->killed = 1;
+      return;
+    }
+    uint physaddr = PTE_ADDR(*pte);
+    uint refCount = getRef(physaddr);
+    char *mem;
+    if(refCount > 1) {
+        if((mem = kalloc()) == 0) {
+          proc->killed = 1;
+          return;
+        }
+        memmove(mem, (char*)P2V(physaddr), PGSIZE);
+        *pte = V2P(mem) | PTE_P | PTE_U | PTE_W;
+        decRef(physaddr);
+    }
+    else if(refCount == 1){
+      *pte |= PTE_W;
+      *pte &= ~PTE_COW;
+    }
+    lcr3(V2P(proc->pgdir));
+}
